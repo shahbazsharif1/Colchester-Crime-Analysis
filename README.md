@@ -1,6 +1,7 @@
 # Colchester Crime Analysis 2023: A Hotspot-Driven Approach to Optimizing Police Resources
 To conduct an in-depth analysis of crime patterns in Colchester during 2023. The primary goal is to identify high-risk areas, times, and prevalent crime types to provide actionable intelligence for law enforcement resource allocation and inform targeted community safety programs.
 
+
 ### 🎯 Project Objective
 This project moves beyond simple crime reporting to deliver actionable intelligence for law enforcement. By applying geospatial clustering and temporal analysis to over 6,800 crime incidents in Colchester for 2023, the goal was to identify not just *that* crime was happening, but precisely *where* and *what kind* of crime was concentrated, enabling a more strategic allocation of police resources.
 
