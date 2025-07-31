@@ -1,6 +1,4 @@
 # Colchester Crime Analysis 2023: A Hotspot-Driven Approach to Optimizing Police Resources
-To conduct an in-depth analysis of crime patterns in Colchester during 2023. The primary goal is to identify high-risk areas, times, and prevalent crime types to provide actionable intelligence for law enforcement resource allocation and inform targeted community safety programs.
-
 
 ### 🎯 Project Objective
 This project moves beyond simple crime reporting to deliver actionable intelligence for law enforcement. By applying geospatial clustering and temporal analysis to over 6,800 crime incidents in Colchester for 2023, the goal was to identify not just *that* crime was happening, but precisely *where* and *what kind* of crime was concentrated, enabling a more strategic allocation of police resources.
@@ -8,7 +6,7 @@ This project moves beyond simple crime reporting to deliver actionable intellige
 ---
 
 ### 🚀 Live Demos & Report
-* **[View the Full Static Report (HTML)](file:///Users/shahbaz/Documents/study%20material/Data%20visualisation/Crime_project.html)**
+* **[View the Full Static Report (HTML)](https://shahbazsharif1.github.io/Colchester-Crime-Analysis/Crime_project.html)**
 * **[Interact with the Live Dashboard (Shiny App)](https://your-shinyapps-io-link-here)** *(https://shahbaz-sharif.shinyapps.io/Crime-Hotspot-Analysis/)*
 
 ---
