@@ -9,7 +9,7 @@ This project moves beyond simple crime reporting to deliver actionable intellige
 
 ### 🚀 Live Demos & Report
 * **[View the Full Static Report (HTML)](file:///Users/shahbaz/Documents/study%20material/Data%20visualisation/Crime_project.html)**
-* **[Interact with the Live Dashboard (Shiny App)](https://your-shinyapps-io-link-here)** *(<- This is your biggest selling point!)*
+* **[Interact with the Live Dashboard (Shiny App)](https://your-shinyapps-io-link-here)** *(https://shahbaz-sharif.shinyapps.io/Crime-Hotspot-Analysis/)*
 
 ---
 
