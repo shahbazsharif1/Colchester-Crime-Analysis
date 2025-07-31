@@ -1,0 +1,198 @@
+---
+title: "Colchester Crime Analysis 2023"
+author: "Shahbaz SHarif"
+date: "2024-04-24"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+# Load necessary libraries
+library(tidyverse) # Includes ggplot2, dplyr, and others for data manipulation
+library(sf)        # For handling spatial data
+library(leaflet)   # For interactive maps
+library(dbscan)    # For density-based clustering
+library(ggthemes)  # For extra plot themes
+```
+
+```{r}
+# Read the data from a CSV file
+crime_df <- read.csv("crime23.csv")
+```
+
+```{r}
+#explore data
+names(crime_df)
+```
+
+```{r}
+str(crime_df)
+```
+
+```{r}
+# Check for missing values in each column
+missing_values <- colSums(is.na(crime_df))
+print(missing_values)
+```
+
+1. DATA CLEANING AND FEATURE ENGINEERING 
+```{r}
+# Clean and prepare the data in a single pipeline
+crime_clean <- crime_df %>%
+  # Convert date column from YYYY-MM 
+  mutate(date = as.Date(paste0(date, "-01"))) %>%
+  # Remove rows with missing location data, which are crucial for mapping
+  drop_na(lat, long) %>%
+  # Engineer temporal features for deeper analysis
+  mutate(
+    month = fct_reorder(format(date, "%B"), as.numeric(format(date, "%m"))), # Ordered Month Factor
+    season = case_when(
+      month %in% c("December", "January", "February") ~ "Winter",
+      month %in% c("March", "April", "May") ~ "Spring",
+      month %in% c("June", "July", "August") ~ "Summer",
+      TRUE ~ "Autumn"
+    )
+  )
+
+# Convert to a spatial object (sf) for geospatial analysis
+# WGS 84 (EPSG:4326) is the standard for lat/long data
+crime_sf <- st_as_sf(crime_clean, coords = c("long", "lat"), crs = 4326, na.fail = FALSE)
+
+# Checking for the cleaned data
+glimpse(crime_sf)
+```
+
+2. WHAT ARE THE MAIN CRIMES? 
+```{r}
+# Calculate the percentage for the top crime category
+total_incidents <- nrow(crime_sf)
+violent_crime_count <- crime_sf %>%
+  filter(category == "violent-crime") %>%
+  nrow()
+violent_crime_percentage <- round((violent_crime_count / total_incidents) * 100, 1)
+
+#bar chart of crime categories
+ggplot(crime_sf, aes(y = fct_rev(fct_infreq(category)))) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = 'count', aes(label = after_stat(count)), hjust = -0.2) +
+  
+scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  
+  labs(
+    title = "Violent Crime Dominates Incidents in Colchester (2023)",
+    subtitle = paste0("'Violent and sexual offences' account for ", violent_crime_percentage, "% of all recorded incidents."),
+    x = "Number of Incidents",
+    y = "Crime Category"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.y = element_blank())
+
+```
+
+3. WHEN DOES CRIME HAPPEN(TEMPORAL PATTERN)?
+```{r}
+# Top 6 crime categories to avoid a cluttered plot
+top_6_crimes <- crime_sf %>%
+  sf::st_drop_geometry() %>%
+  count(category, sort = TRUE) %>%
+  top_n(6) %>%
+  pull(category)
+
+# Filter for these top categories and plot their trends
+crime_sf %>%
+  filter(category %in% top_6_crimes) %>%
+  count(month, category) %>%
+  ggplot(aes(x = month, y = n, group = category, color = category)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2) +
+  facet_wrap(~ category, ncol = 2, scales = "free_y") +
+  labs(
+    title = "Crime Incidents Peak in Summer Months",
+    subtitle = "Trends for the top 6 crime categories in Colchester, 2023",
+    x = "Month",
+    y = "Number of Incidents"
+  ) +
+  theme_light() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none" # Facet titles make a legend redundant
+  )
+```
+
+4. GEOSPATIAL ANALYSIS: FINDING HOTSPOTS
+```{r}
+# Convert to British National Grid (EPSG:27700) for distance calculations
+crime_sf_proj <- st_transform(crime_sf, crs = 27700)
+coords <- st_coordinates(crime_sf_proj)
+
+# Run DBSCAN with your best settings
+# eps = 150: Search radius of 150 meters
+# minPts = 20: A cluster must have at least 20 incidents
+db <- dbscan(coords, eps = 120, minPts = 25)
+
+# Add cluster assignments to our data. Cluster '0' represents noise (isolated incidents)
+crime_sf_proj$cluster <- as.factor(db$cluster)
+
+# --- IMPORTANT DIAGNOSTIC STEP ---
+# It shows how many incidents are in each cluster.
+# If you see a large number for '0' and very few (or none) for 1, 2, 3..., then the
+# parameters above need more tuning. A good result has several clusters with inciden
+print("Cluster Distribution:")
+print(table(crime_sf_proj$cluster))
+# -----------------------------------
+
+# Transform the data BACK to the standard GPS format (CRS 4326) for Leaflet
+crime_sf_for_map <- st_transform(crime_sf_proj, crs = 4326)
+
+# Create the interactive map with new clusters
+pal <- colorFactor(c("grey", "#FF5733", "#3357FF","#F1C40F", "#8E44AD"), domain = crime_sf_for_map$cluster)
+
+leaflet(crime_sf_for_map) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addCircleMarkers(
+    radius = 4,
+    color = ~pal(cluster),
+    stroke = FALSE,
+    fillOpacity = 0.7,
+    popup = ~paste("<b>Category:</b>", category, "<br>", "<b>Cluster ID:</b>", cluster)
+  ) %>%
+  addLegend("bottomright", pal = pal, values = ~cluster, title = "Crime Cluster ID") %>%
+  setView(lng = 0.8919, lat = 51.8959, zoom = 13)
+```
+
+
+
+5. WHAT CRIMES HAPPEN IN WHICH HOTSPOTS?
+```{r}
+# First, identify the top 4 largest clusters (excluding noise)
+top_4_clusters <- crime_sf_proj %>%
+  sf::st_drop_geometry() %>%
+  filter(cluster != "0") %>%
+  count(cluster, sort = TRUE) %>%
+  top_n(4) %>%
+  pull(cluster)
+
+# Now, create the analysis ONLY for these top clusters
+cluster_analysis <- crime_sf_proj %>%
+  sf::st_drop_geometry() %>%
+  filter(cluster %in% top_4_clusters) %>% # Filter for only the biggest clusters
+  count(cluster, category, sort = TRUE) %>%
+  group_by(cluster) %>%
+  mutate(percentage = round(n / sum(n) * 100, 1)) %>%
+  top_n(3, n) # Get top 3 crimes for each
+
+# Visualize the compositions of ONLY the top 4 clusters
+ggplot(cluster_analysis, aes(x = percentage, y = fct_reorder(category, percentage), fill = category)) +
+  geom_col(show.legend = FALSE) +
+  # Use facet_wrap on our cleaner data
+  facet_wrap(~ paste("Cluster", cluster), ncol = 2) +
+  labs(
+    title = "Crime Profile of Major Hotspots",
+    subtitle = "Comparing the top 3 crimes in the 4 largest clusters",
+    x = "Percentage of Incidents within Each Cluster",
+    y = "Crime Category"
+  ) +
+  theme_light(base_size = 12)
+```
