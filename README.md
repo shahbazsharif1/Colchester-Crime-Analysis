@@ -7,7 +7,7 @@ This project moves beyond simple crime reporting to deliver actionable intellige
 
 ### 🚀 Live Demos & Report
 * **[View the Full Static Report (HTML)](https://shahbazsharif1.github.io/Colchester-Crime-Analysis/Crime_project.html)**
-* **[Interact with the Live Dashboard (Shiny App)](https://your-shinyapps-io-link-here)** *(https://shahbaz-sharif.shinyapps.io/Crime-Hotspot-Analysis/)**
+* **[Interact with the Live Dashboard (Shiny App)](https://shahbaz-sharif.shinyapps.io/Crime-Hotspot-Analysis/)**
 
 ---
 
